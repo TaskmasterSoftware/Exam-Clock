@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Clock & Display</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+      width: 100%;
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #e5e5e5;
+      overflow: hidden;
+    }
+
+    .main {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* Sidebar Settings */
+    #settings {
+      width: 270px;
+      min-width: 250px;
+      height: 100%;
+      background-color: #d0e7f5;
+      padding: 12px 14px;
+      overflow-y: auto;
+      border-right: 2px solid #9ab8cc;
+      flex-shrink: 0;
+    }
+
+    #settings h2 {
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+      color: #111;
+    }
+
+    #settings h3 {
+      font-size: 1.05rem;
+      margin-top: 12px;
+      margin-bottom: 6px;
+      border-bottom: 1px solid #7a9bb0;
+      padding-bottom: 3px;
+      color: #111;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 2px 0;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="time"] {
+      padding: 4px 6px;
+      font-size: 0.95rem;
+      border: 1px solid #888;
+      border-radius: 4px;
+      width: 100%;
+      background: white;
+    }
+
+    .time-grid-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    /* Main Display Wrapper */
+    #display_wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    /* Top Banner & Toolbar */
+    #display_header {
+      display: flex;
+      align-items: center;
+      background-color: #e5e5e5;
+      padding: 0.8vh 1.2vw;
+      border-bottom: 2px solid #bbb;
+      flex-shrink: 0;
+    }
+
+    .widget_holder {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      background: white;
+      border: 1px solid #888;
+      border-radius: 6px;
+      padding: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-btn:hover {
+      background: #f0f0f0;
+    }
+
+    .banner {
+      flex: 1;
+      text-align: center;
+      padding-right: 40px;
+      min-width: 0;
+    }
+
+    .banner h1 {
+      font-size: clamp(1.6rem, 4.2vh, 3.8rem);
+      font-weight: 800;
+      color: #000;
+      letter-spacing: 0.5px;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Main Content Area */
+    #contents {
+      flex: 1;
+      display: flex;
+      background-color: #ffffff;
+      padding: 1.2vh 1.2vw;
+      gap: 1.5vw;
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
+      align-items: stretch;
+    }
+
+    /* Clock Column - Shrinks tightly to clock diameter so zero horizontal whitespace is wasted */
+    .clock_holders {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+
+    #canvas_container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+    }
+
+    #canvas {
+      display: block;
+      width: auto;
+      height: auto;
+      max-height: 100%;
+    }
+
+    #digital_clock {
+      flex-shrink: 0;
+      text-align: center;
+      padding-top: 0.5vh;
+      line-height: 1;
+    }
+
+    #digital_clock span {
+      font-size: clamp(2rem, 8.5vh, 6.8rem);
+      font-weight: 800;
+      color: #000;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -1px;
+    }
+
+    /* Exams Column - Uses all remaining horizontal space */
+    .exam_holders {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 1.2vh;
+      height: 100%;
+    }
+
+    .exam-card {
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+      border: 3px solid #bbb;
+      border-radius: 10px;
+      padding: 1vh 1.4vw;
+      background-color: #f8f9fa;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .exam-header {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .examNumberb {
+      display: block;
+      font-size: clamp(1rem, 2.5vh, 2.1rem);
+      font-weight: 800;
+      color: #444;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      line-height: 1.1;
+      margin-bottom: 0.3vh;
+    }
+
+    .examTitleb {
+      display: block;
+      font-weight: 800;
+      color: #000;
+      line-height: 1.12;
+      white-space: nowrap;
+      width: 100%;
+    }
+
+    .times-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.2vw;
+      align-items: end;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .times-row.two-cols {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .time-block {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .examTimesb {
+      font-size: clamp(0.85rem, 2.1vh, 1.8rem);
+      font-weight: 700;
+      color: #333;
+      line-height: 1.1;
+      margin-bottom: 0.2vh;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .examTimes {
+      font-size: clamp(1.4rem, 5.8vh, 4.8rem);
+      font-weight: 800;
+      color: #000;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      display: block;
+    }
+
+    @media only screen and (max-width: 768px) {
+      html,
+      body,
+      .main {
+        height: auto;
+        overflow: auto;
+      }
+
+      .main {
+        flex-direction: column;
+      }
+
+      #settings {
+        width: 100%;
+        height: auto;
+      }
+
+      #contents {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body id="body">
+
+  <div class="main">
+    <!-- Collapsible Settings Sidebar -->
+    <div id="settings">
+      <h2>Settings</h2>
+      <div class="form-group">
+        <label for="centreNumberInput"><strong>Centre Number:</strong></label>
+        <input id="centreNumberInput" type="text" value="58830">
+      </div>
+
+      <!-- Exam 1 Controls -->
+      <div id="examBlock_1">
+        <h3>Exam 1</h3>
+        <div class="form-group">
+          <label class="checkbox-row">
+            <input id="check_1" type="checkbox"> Hide Exam 1
+          </label>
+          <label for="examTitle1">Title</label>
+          <input id="examTitle1" type="text" placeholder="e.g. Mathematics Paper 1">
+          <div class="time-grid-inputs">
+            <div>
+              <label for="examStart1">Start Time</label>
+              <input id="examStart1" type="time" value="09:00">
+            </div>
+            <div>
+              <label for="examEnd1">End Time</label>
+              <input id="examEnd1" type="time" value="10:30">
+            </div>
+          </div>
+          <label class="checkbox-row">
+            <input id="autoExtra_1" type="checkbox" checked> Auto +25% Extra Time
+          </label>
+          <label for="examExtra1">Extra Time Finish</label>
+          <input id="examExtra1" type="time" value="10:53">
+          <label class="checkbox-row">
+            <input id="hideExtra_1" type="checkbox"> Hide Extra Time
+          </label>
+        </div>
+      </div>
+
+      <!-- Exam 2 Controls -->
+      <div id="examBlock_2">
+        <h3>Exam 2</h3>
+        <div class="form-group">
+          <label class="checkbox-row">
+            <input id="check_2" type="checkbox"> Hide Exam 2
+          </label>
+          <label for="examTitle2">Title</label>
+          <input id="examTitle2" type="text" placeholder="e.g. English Literature">
+          <div class="time-grid-inputs">
+            <div>
+              <label for="examStart2">Start Time</label>
+              <input id="examStart2" type="time" value="09:00">
+            </div>
+            <div>
+              <label for="examEnd2">End Time</label>
+              <input id="examEnd2" type="time" value="10:30">
+            </div>
+          </div>
+          <label class="checkbox-row">
+            <input id="autoExtra_2" type="checkbox" checked> Auto +25% Extra Time
+          </label>
+          <label for="examExtra2">Extra Time Finish</label>
+          <input id="examExtra2" type="time" value="10:53">
+          <label class="checkbox-row">
+            <input id="hideExtra_2" type="checkbox"> Hide Extra Time
+          </label>
+        </div>
+      </div>
+
+      <!-- Exam 3 Controls -->
+      <div id="examBlock_3">
+        <h3>Exam 3</h3>
+        <div class="form-group">
+          <label class="checkbox-row">
+            <input id="check_3" type="checkbox" checked> Hide Exam 3
+          </label>
+          <label for="examTitle3">Title</label>
+          <input id="examTitle3" type="text" placeholder="e.g. Combined Science">
+          <div class="time-grid-inputs">
+            <div>
+              <label for="examStart3">Start Time</label>
+              <input id="examStart3" type="time" value="09:00">
+            </div>
+            <div>
+              <label for="examEnd3">End Time</label>
+              <input id="examEnd3" type="time" value="10:30">
+            </div>
+          </div>
+          <label class="checkbox-row">
+            <input id="autoExtra_3" type="checkbox" checked> Auto +25% Extra Time
+          </label>
+          <label for="examExtra3">Extra Time Finish</label>
+          <input id="examExtra3" type="time" value="10:53">
+          <label class="checkbox-row">
+            <input id="hideExtra_3" type="checkbox"> Hide Extra Time
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Display Area -->
+    <div id="display_wrapper">
+      <div id="display_header">
+        <div class="widget_holder">
+          <button type="button" class="icon-btn" title="Toggle Settings" onclick="toggleSettings()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+          <button type="button" class="icon-btn" title="Toggle Fullscreen" onclick="toggleFullScreen()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="banner">
+          <h1 id="centre_number">Centre Number: 58830</h1>
+        </div>
+      </div>
+
+      <div id="contents">
+        <!-- Clocks -->
+        <div class="clock_holders" id="clock_holder">
+          <div id="canvas_container">
+            <canvas id="canvas" width="900" height="900">
+              Sorry, your browser does not support canvas.
+            </canvas>
+          </div>
+          <div id="digital_clock"><span>00:00:00</span></div>
+        </div>
+
+        <!-- Exam Timetables -->
+        <div class="exam_holders" id="exam_holders">
+          <!-- Exam 1 Card -->
+          <div id="exam1" class="exam-card">
+            <div class="exam-header">
+              <span class="examNumberb">Exam 1</span>
+              <span class="examTitleb" id="title1">&nbsp;</span>
+            </div>
+            <div class="times-row" id="timesRow1">
+              <div class="time-block">
+                <span class="examTimesb">Start Time</span>
+                <span class="examTimes" id="start1">09:00</span>
+              </div>
+              <div class="time-block">
+                <span class="examTimesb">End Time</span>
+                <span class="examTimes" id="end1">10:30</span>
+              </div>
+              <div class="time-block" id="extraBlock1">
+                <span class="examTimesb">Extra Time</span>
+                <span class="examTimes" id="extra1">10:53</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exam 2 Card -->
+          <div id="exam2" class="exam-card">
+            <div class="exam-header">
+              <span class="examNumberb">Exam 2</span>
+              <span class="examTitleb" id="title2">&nbsp;</span>
+            </div>
+            <div class="times-row" id="timesRow2">
+              <div class="time-block">
+                <span class="examTimesb">Start Time</span>
+                <span class="examTimes" id="start2">09:00</span>
+              </div>
+              <div class="time-block">
+                <span class="examTimesb">End Time</span>
+                <span class="examTimes" id="end2">10:30</span>
+              </div>
+              <div class="time-block" id="extraBlock2">
+                <span class="examTimesb">Extra Time</span>
+                <span class="examTimes" id="extra2">10:53</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Exam 3 Card -->
+          <div id="exam3" class="exam-card" style="display: none;">
+            <div class="exam-header">
+              <span class="examNumberb">Exam 3</span>
+              <span class="examTitleb" id="title3">&nbsp;</span>
+            </div>
+            <div class="times-row" id="timesRow3">
+              <div class="time-block">
+                <span class="examTimesb">Start Time</span>
+                <span class="examTimes" id="start3">09:00</span>
+              </div>
+              <div class="time-block">
+                <span class="examTimesb">End Time</span>
+                <span class="examTimes" id="end3">10:30</span>
+              </div>
+              <div class="time-block" id="extraBlock3">
+                <span class="examTimesb">Extra Time</span>
+                <span class="examTimes" id="extra3">10:53</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const halfSize = canvas.height / 2;
+    ctx.translate(halfSize, halfSize);
+    const radius = halfSize * 0.92;
+
+    // Start clocks immediately on load
+    updateClocks();
+    setInterval(updateClocks, 1000);
+
+    // Event Listeners
+    document.getElementById("centreNumberInput").addEventListener("input", setCentreNumber);
+
+    for (let i = 1; i <= 3; i++) {
+      // Hide/Show Exam Card
+      document.getElementById(`check_${i}`).addEventListener("change", (evt) => {
+        document.getElementById(`exam${i}`).style.display = evt.target.checked ? "none" : "flex";
+        fitAllText();
+      });
+
+      // Live Exam Title Update with Auto-Fit
+      document.getElementById(`examTitle${i}`).addEventListener("input", (evt) => {
+        const val = evt.target.value.trim();
+        const titleEl = document.getElementById(`title${i}`);
+        titleEl.innerHTML = val.length > 0 ? escapeHtml(val) : "&nbsp;";
+        fitCardText(i);
+      });
+
+      // Start Time Update
+      document.getElementById(`examStart${i}`).addEventListener("change", (evt) => {
+        document.getElementById(`start${i}`).textContent = evt.target.value;
+        recalculateExtraTime(i);
+        fitCardTimes(i);
+      });
+
+      // End Time Update
+      document.getElementById(`examEnd${i}`).addEventListener("change", (evt) => {
+        document.getElementById(`end${i}`).textContent = evt.target.value;
+        recalculateExtraTime(i);
+        fitCardTimes(i);
+      });
+
+      // Auto +25% Checkbox Toggle
+      document.getElementById(`autoExtra_${i}`).addEventListener("change", (evt) => {
+        if (evt.target.checked) {
+          recalculateExtraTime(i);
+          fitCardTimes(i);
+        }
+      });
+
+      // Manual Extra Time Input Override
+      document.getElementById(`examExtra${i}`).addEventListener("change", (evt) => {
+        document.getElementById(`autoExtra_${i}`).checked = false;
+        document.getElementById(`extra${i}`).textContent = evt.target.value;
+        fitCardTimes(i);
+      });
+
+      // Hide Extra Time Column Toggle
+      document.getElementById(`hideExtra_${i}`).addEventListener("change", (evt) => {
+        const extraBlock = document.getElementById(`extraBlock${i}`);
+        const timesRow = document.getElementById(`timesRow${i}`);
+        if (evt.target.checked) {
+          extraBlock.style.display = "none";
+          timesRow.classList.add("two-cols");
+        } else {
+          extraBlock.style.display = "flex";
+          timesRow.classList.remove("two-cols");
+        }
+        fitCardTimes(i);
+      });
+
+      // Initial extra time calculation
+      recalculateExtraTime(i);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function timeToMinutes(timeStr) {
+      if (!timeStr || !timeStr.includes(":")) return null;
+      const [h, m] = timeStr.split(":").map(Number);
+      if (isNaN(h) || isNaN(m)) return null;
+      return h * 60 + m;
+    }
+
+    function minutesToTime(totalMinutes) {
+      const normalized = ((totalMinutes % 1440) + 1440) % 1440;
+      const h = Math.floor(normalized / 60);
+      const m = normalized % 60;
+      return `${checkTime(h)}:${checkTime(m)}`;
+    }
+
+    function recalculateExtraTime(index) {
+      const autoCheck = document.getElementById(`autoExtra_${index}`);
+      if (!autoCheck.checked) return;
+
+      const startMins = timeToMinutes(document.getElementById(`examStart${index}`).value);
+      const endMins = timeToMinutes(document.getElementById(`examEnd${index}`).value);
+      if (startMins === null || endMins === null) return;
+
+      let duration = endMins - startMins;
+      if (duration < 0) duration += 1440; // Handle exams crossing midnight
+
+      const extraAllowance = Math.ceil(duration * 0.25);
+      const extraEndFormatted = minutesToTime(endMins + extraAllowance);
+
+      document.getElementById(`examExtra${index}`).value = extraEndFormatted;
+      document.getElementById(`extra${index}`).textContent = extraEndFormatted;
+    }
+
+    function resizeClockAndFit() {
+      const container = document.getElementById("canvas_container");
+      const contents = document.getElementById("contents");
+      const maxH = container.clientHeight;
+      // Cap clock size to 44% of content area width so exam cards always retain at least 56% width
+      const maxW = Math.floor(contents.clientWidth * 0.44);
+      const size = Math.max(120, Math.min(maxH, maxW));
+      canvas.style.width = size + "px";
+      canvas.style.height = size + "px";
+      fitAllText();
+    }
+
+    function fitCardText(index) {
+      const card = document.getElementById(`exam${index}`);
+      if (!card || card.style.display === "none") return;
+
+      const titleEl = document.getElementById(`title${index}`);
+      const cardHeight = card.clientHeight;
+      const availableWidth = titleEl.parentElement.clientWidth;
+      if (availableWidth <= 0 || cardHeight <= 0) return;
+
+      let fontSize = Math.min(Math.max(20, Math.floor(cardHeight * 0.28)), 88);
+      titleEl.style.fontSize = fontSize + "px";
+
+      while (titleEl.scrollWidth > availableWidth && fontSize > 14) {
+        fontSize -= 1;
+        titleEl.style.fontSize = fontSize + "px";
+      }
+    }
+
+    function fitCardTimes(index) {
+      const card = document.getElementById(`exam${index}`);
+      if (!card || card.style.display === "none") return;
+
+      const cardHeight = card.clientHeight;
+      const blocks = card.querySelectorAll(".time-block");
+      let maxAllowedSize = Math.min(Math.max(18, Math.floor(cardHeight * 0.32)), 84);
+
+      blocks.forEach((block) => {
+        if (block.style.display === "none") return;
+        const labelEl = block.querySelector(".examTimesb");
+        const valEl = block.querySelector(".examTimes");
+        const availableWidth = block.clientWidth;
+        if (availableWidth <= 0) return;
+
+        // Fit time value (e.g. 09:00) inside its column width
+        let size = maxAllowedSize;
+        valEl.style.fontSize = size + "px";
+        while (valEl.scrollWidth > availableWidth && size > 14) {
+          size -= 1;
+          valEl.style.fontSize = size + "px";
+        }
+        if (size < maxAllowedSize) {
+          maxAllowedSize = size;
+        }
+
+        // Fit label ("Start Time", "End Time", "Extra Time") inside its column width
+        let labelSize = Math.min(Math.max(12, Math.floor(cardHeight * 0.13)), 30);
+        labelEl.style.fontSize = labelSize + "px";
+        while (labelEl.scrollWidth > availableWidth && labelSize > 11) {
+          labelSize -= 1;
+          labelEl.style.fontSize = labelSize + "px";
+        }
+      });
+
+      // Apply uniform font size across all time values in the card so they match
+      blocks.forEach((block) => {
+        if (block.style.display === "none") return;
+        block.querySelector(".examTimes").style.fontSize = maxAllowedSize + "px";
+      });
+    }
+
+    function fitAllText() {
+      for (let i = 1; i <= 3; i++) {
+        fitCardText(i);
+        fitCardTimes(i);
+      }
+    }
+
+    window.addEventListener("resize", resizeClockAndFit);
+    window.addEventListener("load", resizeClockAndFit);
+    setTimeout(resizeClockAndFit, 50);
+
+    function updateClocks() {
+      const now = new Date();
+      drawClock(now);
+      updateDigitalClock(now);
+    }
+
+    function drawClock(now) {
+      ctx.clearRect(-halfSize, -halfSize, canvas.width, canvas.height);
+      drawFace(ctx, radius);
+      drawTicks(ctx, radius);
+      drawNumbers(ctx, radius);
+      drawTime(ctx, radius, now);
+    }
+
+    function drawFace(ctx, radius) {
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+
+      ctx.strokeStyle = "#111111";
+      ctx.lineWidth = radius * 0.035;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.045, 0, 2 * Math.PI);
+      ctx.fillStyle = "#111111";
+      ctx.fill();
+    }
+
+    function drawTicks(ctx, radius) {
+      for (let i = 0; i < 60; i++) {
+        const ang = (i * Math.PI) / 30;
+        const isHour = i % 5 === 0;
+        ctx.save();
+        ctx.rotate(ang);
+        ctx.beginPath();
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#111111";
+        ctx.lineWidth = isHour ? radius * 0.022 : radius * 0.008;
+        ctx.moveTo(0, -radius * (isHour ? 0.89 : 0.93));
+        ctx.lineTo(0, -radius * 0.97);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function drawNumbers(ctx, radius) {
+      ctx.font = "bold " + Math.round(radius * 0.17) + "px Arial, Helvetica, sans-serif";
+      ctx.textBaseline = "middle";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#000000";
+      for (let num = 1; num < 13; num++) {
+        const ang = (num * Math.PI) / 6;
+        ctx.rotate(ang);
+        ctx.translate(0, -radius * 0.74);
+        ctx.rotate(-ang);
+        ctx.fillText(num.toString(), 0, 0);
+        ctx.rotate(ang);
+        ctx.translate(0, radius * 0.74);
+        ctx.rotate(-ang);
+      }
+    }
+
+    function drawTime(ctx, radius, now) {
+      let hour = now.getHours();
+      let minute = now.getMinutes();
+      let second = now.getSeconds();
+
+      // Hour hand
+      hour = hour % 12;
+      hour = (hour * Math.PI / 6) + (minute * Math.PI / (6 * 60)) + (second * Math.PI / (360 * 60));
+      drawHand(ctx, hour, radius * 0.50, radius * 0.045, "#000000");
+
+      // Minute hand
+      minute = (minute * Math.PI / 30) + (second * Math.PI / (30 * 60));
+      drawHand(ctx, minute, radius * 0.80, radius * 0.032, "#000000");
+
+      // Second hand
+      second = (second * Math.PI / 30);
+      drawHand(ctx, second, radius * 0.87, radius * 0.014, "#c00000");
+    }
+
+    function drawHand(ctx, pos, length, width, color) {
+      ctx.beginPath();
+      ctx.lineWidth = width;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = color;
+      ctx.moveTo(0, 0);
+      ctx.rotate(pos);
+      ctx.lineTo(0, -length);
+      ctx.stroke();
+      ctx.rotate(-pos);
+    }
+
+    function updateDigitalClock(now) {
+      const h = checkTime(now.getHours());
+      const m = checkTime(now.getMinutes());
+      const s = checkTime(now.getSeconds());
+      document.getElementById("digital_clock").innerHTML = `<span>${h}:${m}:${s}</span>`;
+    }
+
+    function checkTime(i) {
+      return i < 10 ? "0" + i : i;
+    }
+
+    function toggleSettings() {
+      const settingsPanel = document.getElementById("settings");
+      settingsPanel.style.display = settingsPanel.style.display === "none" ? "block" : "none";
+      resizeClockAndFit();
+    }
+
+    function toggleFullScreen() {
+      const body = document.getElementById("body");
+      if (!document.fullscreenElement) {
+        body.requestFullscreen().then(() => setTimeout(resizeClockAndFit, 100));
+      } else {
+        document.exitFullscreen?.().then(() => setTimeout(resizeClockAndFit, 100));
+      }
+    }
+
+    function setCentreNumber(evt) {
+      document.getElementById("centre_number").textContent = "Centre Number: " + evt.target.value;
+    }
+  </script>
+
+</body>
+</html>
